@@ -24,7 +24,7 @@ Quorum 节点的设计主要沿袭以太坊的 geth。面对日益壮大的以�
 1. 原来区块中的 "global state root" 被替换成了 "global public state root"。
 1. 原来的 state 存储被分成了两部分，分别存储 public state 和 private state。
 1. 修改区块校验逻辑使其能支持 private transaction。
-1. Transaction 生成时支持 transaction 内容的替换。这个调整是为了能支持联盟中的私有交易。（后面的 `Transaction Processing` 章节会提到）
+1. Transaction 生成时支持 transaction 内容的替换。这个调整是为了能支持联盟中的私有交易。（后面的 [Transaction Processing](#transaction_processing) 章节会提到）
 
 
 ## **Constellation**
@@ -44,12 +44,16 @@ Constellation 模块的主要职责是支持 private transaction。Constellation
 Public Transaction 的机理和以太坊一致。TX 中的交易内容能被链上的所有人访问到。
 
 ### Private Transaction
-Private Transaction 虽然被叫做 "Private"，但是在全网上也会出现与其相关的交易。只不过交易的明细只有与此交易有关系的成员才能访问到。在全网上看到的交易内容是一段hash值，当你是交易的相关人员时，你就能利用这个hash值，然后通过 Transaction Manager 和 Enclave 来获得这比交易的正确内容。这在 `Transaction Processing` 章节中会详细介绍。
+Private Transaction 虽然被叫做 "Private"，但是在全网上也会出现与其相关的交易。只不过交易的明细只有与此交易有关系的成员才能访问到。在全网上看到的交易内容是一段hash值，当你是交易的相关人员时，你就能利用这个hash值，然后通过 Transaction Manager 和 Enclave 来获得这比交易的正确内容。这在 [Transaction Processing](#transaction_processing) 章节中会详细介绍。
+
+<a name="transaction_processing" ></a>
 
 ## **Transaction Processing**
 Public Transaction的处理流程和以太坊的 TX 流程一致。TX 广播全网后，被矿工打包到区块中。节点收到区块并校验区块中的 TX 信息。然后根据 TX 信息更新本地的 State。
 
 Private Transaction也会将 TX 广播至全网。但是它的 TX payload已经从原来的真实内容替换为一个hash值。这个hash值是由`Transaction Manager`提供的。
+
+<a name="trasaction_processing_img01"></a>
 
 两者的区别可以参考下图：
 ![transactions](https://github.com/heeeeeng/my_img/blob/master/quorum/Tx.png?raw=true)
@@ -68,15 +72,15 @@ Quorum中一个Private Transaction的详细流程可以参考下图：
 2. 节点将 TX 发送给其对应的 Transaction Manager。
 3. Transaction Manager 呼叫与其关联的 Enclave，并要求 Enclave 加密这笔 TX。
 4. PartyA 的 Enclave 校验获取到的PartyA私钥，如果确认通过则进行如下动作：\
-    **i.** 生成一个密钥（symmetric key）。\
-    **ii.** 用上一步生成的symmetric key来加密 TX 的内容。\
-    **iii.** 用SHA3-512来获取加密后的TX内容的hash值。\
-    **iv.** 将 `i` 生成的symmetric key用**第一步**中的public key数组的所有值加密，然后生成一个新的数组。新的数组的每个元素都是由 `i` 中的symmetric key用原来数组的public key加密生成：`[key_encrypted_by_publickey_A, key_encrypted_by_publickey_B]` \
-    **v.** 将 `ii` 生成的加密TX，`iii` 生成的hash值，`iv` 生成的加密后的数组返回给Transaction Manager。
+    i. 生成一个密钥（symmetric key）。\
+    ii. 用上一步生成的symmetric key来加密 TX 的内容。\
+    iii. 用SHA3-512来获取加密后的TX内容的hash值。\
+    iv. 将 `i` 生成的symmetric key用**第一步**中的public key数组的所有值加密，然后生成一个新的数组。新的数组的每个元素都是由 `i` 中的symmetric key用原来数组的public key加密生成：`[key_encrypted_by_publickey_A, key_encrypted_by_publickey_B]` \
+    v. 将 `ii` 生成的加密TX，`iii` 生成的hash值，`iv` 生成的加密后的数组返回给Transaction Manager。
 
 5. PartA的Transaction Manager会把加密后的TX以及加密后的symmetric key保存到本地，并用从 Enclave 中获取的 hash 值作为索引。另外Transaction Manager会把hash值，加密后的TX，public_key_B加密的symmetric key这三项通过HTTPS发送给PartyB的Transaction Manager。PartyB的Tx Manager收到数据后，同样将加密后的TX和symmetric key保存到本地，并用收到的hash值作为索引。处理完后，PartyB的TX manager发送一个成功的回执给PartyA的TX manager。
 
-6. PartyA的TX Manager收到成功回执后，将hash值返回给其对应的Quorum节点。节点收到hash值后，用这个hash值来替换原来TX的交易内容。（参考 `Transaction Processing` 章节的第一张图）同时，将TX的 `V` 值设置为 37 或者 38。37或38就是Private Transaction的标识。其他节点查询后发现 `V` 的值为37或38时，就会认定其为Private Transaction。 
+6. PartyA的TX Manager收到成功回执后，将hash值返回给其对应的Quorum节点。节点收到hash值后，用这个hash值来替换原来TX的交易内容。（参考 [Transaction Processing 章节的第一张图](#trasaction_processing_img01) ）同时，将TX的 `V` 值设置为 37 或者 38。37或38就是Private Transaction的标识。其他节点查询后发现 `V` 的值为37或38时，就会认定其为Private Transaction。 
 
 7. TX内容被替换后，TX就和Pbulic Transaction一样被节点通过P2P方式广播给整个网络。
 
