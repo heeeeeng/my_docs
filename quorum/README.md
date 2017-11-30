@@ -75,7 +75,7 @@ Quorum中一个Private Transaction的详细流程可以参考下图：
     i. 生成一个密钥（symmetric key）。\
     ii. 用上一步生成的symmetric key来加密 TX 的内容。\
     iii. 用SHA3-512来获取加密后的TX内容的hash值。\
-    iv. 将 `i` 生成的symmetric key用**第一步**中的public key数组的所有值加密，然后生成一个新的数组。新的数组的每个元素都是由 `i` 中的symmetric key用原来数组的public key加密生成：`[key_encrypted_by_publickey_A, key_encrypted_by_publickey_B]` \
+    iv. 将 `i` 生成的symmetric key用**第一步**中的public key数组的所有值加密，然后生成一个新的数组。新的数组的每个元素都是由 `i` 中的symmetric key用原来数组的public key加密生成：`["key_encrypted_by_publickey_A", "key_encrypted_by_publickey_B"]` \
     v. 将 `ii` 生成的加密TX，`iii` 生成的hash值，`iv` 生成的加密后的数组返回给Transaction Manager。
 
 5. PartA的Transaction Manager会把加密后的TX以及加密后的symmetric key保存到本地，并用从 Enclave 中获取的 hash 值作为索引。另外Transaction Manager会把hash值，加密后的TX，public_key_B加密的symmetric key这三项通过HTTPS发送给PartyB的Transaction Manager。PartyB的Tx Manager收到数据后，同样将加密后的TX和symmetric key保存到本地，并用收到的hash值作为索引。处理完后，PartyB的TX manager发送一个成功的回执给PartyA的TX manager。
