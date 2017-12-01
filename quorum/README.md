@@ -95,26 +95,23 @@ Quorum中一个Private Transaction的详细流程可以参考下图：
 12. TX Manager收到解密的TX后通过EVM执行TX里面的内容。执行完成后将执行结果返回给Quorum节点，并更新Quorum节点的Private State。
 
 
-# **QuorumChain Consensus**
+# END
 
-## **Voting Smart Contract**
+## **后续内容：**
+- QuorumChain Consensus
+- Raft Consensus
+- Security & Network Permissioning
 
-## **Maker**
 
-## **Voter**
+## **References：**
 
-## **Observer**
+[Quorum Wiki](https://github.com/jpmorganchase/quorum/wiki)
 
-## **Block Creation**
+[Quorum Github Main Page](https://github.com/jpmorganchase/quorum)
 
-## **Block Voting**
+[Quorum Official Page](https://www.jpmorgan.com/quorum)
 
-## **Consensus Process Flow**
 
-# **Raft Consensus**
-// TODO
 
-# **Security & Network Permissioning**
-// TODO
 
 
