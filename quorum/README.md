@@ -8,7 +8,7 @@
 
 <a name="topic_what_is_quorum" ></a>
 
-# **Quorum是什么？**
+# **1. Quorum是什么？**
 Quorum 是由 J.P.Morgan 推出的企业级分布式账本平台。在以太坊的基础上，Quorum额外提供了联盟链的服务。在公有链方面，Quorum继承了以太坊的协议及其客户端Geth。
 
 Quorum 和以太坊的主要区别：
@@ -25,7 +25,7 @@ Quorum 的主要组件：
 
 <a name="topic_quorum_architect" ></a>
 
-# **Quorum的结构**
+# **2. Quorum的结构**
 ![quorum_architecture](https://github.com/jpmorganchase/quorum-docs/raw/master/images/Quorum%20Architecture.JPG)
 
 ## **Quorum Node**
@@ -52,7 +52,7 @@ Constellation 模块的主要职责是支持 private transaction。Constellation
 
 <a name="topic_transaction" ></a>
 
-# **Transaction**
+# **3. Transaction**
 在 Quorum 中有两种交易类型，"Public Transaction" 和 "Privat Transaction"。在实际的交易中，这两种类型都采用了以太坊的 Transaction 模型，但是又做了部分修改。Quorum 在原有的以太坊 tx 模型基础上添加了一个新的 "privateFor" 字段。同时，针对一个 tx 类型的对象添加了一个新的方法 "IsPrivate"。用 "IsPrivate" 方法来判断 tx 是 public 还是 private，用 "privateFor" 来记录 tx 只有谁能查看。
 
 
