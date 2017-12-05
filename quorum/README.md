@@ -1,4 +1,19 @@
-# **Quorum是什么？**
+> 导读：摩根大通的Quorum平台是区块链行业的关注热点（Quorum是由摩根大通最初在去年秋季公布的一种基于以太坊的区块链网络），并且摩根大通近期与零币电子货币公司（Zerocoin Electronic Coin Company）的合作更是引发热议。有专家称，这种将零知识密码学与Quorum相结合的举措，是区块链行业的一大进步，因为这样一来，以太坊将构建更适合的企业级解决方案，并推动区块链的企业应用。而摩根大通也将通过这个平台扩大市场占有率，保证自己的前沿地位。
+> 
+> 本文作者：UniZhu 编辑：KC
+
+
+
+# **目录**
+1. [Quorum是什么？](#topic_what_is_quorum) 
+1. [Quorum的结构](#topic_quorum_architect) 
+1. [Transaction](#topic_transaction) 
+
+
+
+<a name="topic_what_is_quorum" ></a>
+
+# **1. Quorum是什么？**
 Quorum 是由 J.P.Morgan 推出的企业级分布式账本平台。在以太坊的基础上，Quorum额外提供了联盟链的服务。在公有链方面，Quorum继承了以太坊的协议及其客户端Geth。
 
 Quorum 和以太坊的主要区别：
@@ -12,7 +27,10 @@ Quorum 的主要组件：
 - Constellation - Transaction Manager (用于私有Transaction的管理)
 - Constellation - Enclave (用于加解密私有Transaction的信息)
 
-# **Quorum的结构**
+
+<a name="topic_quorum_architect" ></a>
+
+# **2. Quorum的结构**
 ![quorum_architecture](https://github.com/jpmorganchase/quorum-docs/raw/master/images/Quorum%20Architecture.JPG)
 
 ## **Quorum Node**
@@ -36,7 +54,10 @@ Constellation 模块的主要职责是支持 private transaction。Constellation
 ### Enclave
 在分布式账本中，密码学被广泛的运用在交易真实性校验，成员校验，历史信息追溯等方面。为了能更有效率的处理消息的加密与解密，Quorum 将这个功能单独拉出并命名为 Enclave 模块。Enclave 和 Transaction Manager 是一对一的关系。
 
-# **Transaction**
+
+<a name="topic_transaction" ></a>
+
+# **3. Transaction**
 在 Quorum 中有两种交易类型，"Public Transaction" 和 "Privat Transaction"。在实际的交易中，这两种类型都采用了以太坊的 Transaction 模型，但是又做了部分修改。Quorum 在原有的以太坊 tx 模型基础上添加了一个新的 "privateFor" 字段。同时，针对一个 tx 类型的对象添加了一个新的方法 "IsPrivate"。用 "IsPrivate" 方法来判断 tx 是 public 还是 private，用 "privateFor" 来记录 tx 只有谁能查看。
 
 
@@ -95,26 +116,23 @@ Quorum中一个Private Transaction的详细流程可以参考下图：
 12. TX Manager收到解密的TX后通过EVM执行TX里面的内容。执行完成后将执行结果返回给Quorum节点，并更新Quorum节点的Private State。
 
 
-# **QuorumChain Consensus**
+# END
 
-## **Voting Smart Contract**
+## **后续内容：**
+- QuorumChain Consensus
+- Raft Consensus
+- Security & Network Permissioning
 
-## **Maker**
 
-## **Voter**
+## **References：**
 
-## **Observer**
+[Quorum Wiki](https://github.com/jpmorganchase/quorum/wiki)
 
-## **Block Creation**
+[Quorum Github Main Page](https://github.com/jpmorganchase/quorum)
 
-## **Block Voting**
+[Quorum Official Page](https://www.jpmorgan.com/quorum)
 
-## **Consensus Process Flow**
 
-# **Raft Consensus**
-// TODO
 
-# **Security & Network Permissioning**
-// TODO
 
 
