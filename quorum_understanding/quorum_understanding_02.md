@@ -48,13 +48,32 @@ Voter 节点的主要职责是给新生成的合法区块投票。和 Maker 一�
     1. 通过 `BlockVoting` 合约查看新区块的生产者是否在 Maker 列表中。
     1. 执行新区块中的所有的 TX。
     1. 通过 `BlockVoting` 合约查看新区块指向的父区块是否得到了足够的 voter 投票。
-    1. 手动计算新区块中的所有TX生成的 Hash 值，对比自己计算的和新区块中的 Hash 值是否一致。
+    1. 计算新区块中的所有TX生成的 Hash 值，对比和新区块中的 Hash 值是否一致。
 4. 校验通过后，Voter 节点通过 `BlockVoting` 合约将其投票投给这个新区块，并将这次投票的 TX 广播给全网。这个 TX 只有在下次区块生成时才会被打包进区块。
 5. 某个 Maker 节点随机时间读秒结束，准备开始生成新的区块。进入下一个周期。
 
 
-
 # **Raft-based Consensus**
+在2017年11月30日，Quorum 推出了 2.0 的 release 版本。这一版最大的改动就是剔除了 QuorumChain的共识方式，只支持 Raft-based Consensus。相比较以太坊的POW，Raft-based 提供了更快更高效的区块生成方式。相比 QuorumChain，Raft-based 不会产生空的区块，而且在区块的生成上比前者更有效率。
+
+在这一章节，我们重点关注 Raft 是如何被运用到 Quorum 上的。想要了解 Raft 算法的技术细节，可以参考 [raft.github.io](https://raft.github.io/) 或者 [Raft 动态演示](http://thesecretlivesofdata.com/raft/)。
+
+## **Raft on Quorum**
+Quorum 的 Raft 代码主要沿用了 [etcd's Raft implementation](https://github.com/coreos/etcd/tree/master/raft)。
+
+以太坊和 Raft 都有节点这一概念。在 Raft 中，节点可以有 leader, follower, condidate 三种身份。leader 负责生产区块。follower 监听 leader 的心跳并收取 leader 传递过来的区块。follower 一段时间没有收到来自 leader 的心跳后，就转变身份为 candidate，同时整个 Raft 进入下一个周期。然后 candidate 向所有节点发送投票的请求，其他节点（leader 收到消息后 leader 身份就被收回）收到请求后给予应答。如果 candidate 收到超过半数的应答，则晋升为 leader。一个节点一个周期只能投一次票。
+
+在以太坊中，任意节点都可以作为区块的打包者，只要其在一轮 pow 中胜出。我们知道 Quorum 的节点沿用了以太坊的设计和代码。所以为了连接以太坊节点和 Raft 共识，Quorum 采用了网络节点和 Raft 节点一对一的方式来实现 Raft-based 共识。当一笔 TX 诞生后，TX 会在以太坊的 P2P 网络中传输。同时，Raft 的 leader 竞选一直在同步进行。当当前 leader 节点对应的以太坊节点收到 TX 时，以太坊节点就会将 TX 打包成区块并将区块通过 Raft 节点发送给 Raft 网络上的 follower。follower 节点收到区块后将区块交给对应的以太坊节点。然后以太坊节点将区块记录到链上。
+
+与以太坊不同的是，当一个节点收到区块后并不会马上记录到链上。而是等 Raft 网络中的 leader 收到所有 follower 的确认收到区块的回执后，广播一个执行的消息。然后所有收到执行消息的 follower 才会将区块记录在本地的链上。
+
+
+## **Lifecycle of a Transaction**
+
+## **Block Race**
+
+## **Speculative Minting**
+
 
 
 
