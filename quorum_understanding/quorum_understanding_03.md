@@ -18,18 +18,46 @@ Quorum 的 Raft 代码主要沿用了 [etcd's Raft implementation](https://githu
 1. 客户端发起一笔 TX 并通过 RPC 来呼叫节点。
 2. 节点通过以太坊的 P2P 协议将节点广播给网络。
 3. 当前的 Raft leader 对应的以太坊节点收到了 TX 后将 TX 打包成区块。
-4. 区块被 RLP 编码后传递给对应的 Raft leader 节点。
+4. 区块被 RLP 编码后传递给对应的 Raft leader。
 5. leader 收到区块后通过 Raft 算法将区块传递给 follower。这包括如下步骤：
     1. leader 发送 `AppendEntries` 指令给 follower。
     1. follower 收到这个包含区块信息的指令后，返回确认回执给 leader。
-    1. leader 收到不少于指定数量的确认回执后，发送确认 append 的指令给 follower。
-    1. follower 收到确认 append 的指令后将区块信息记录到本地的 Raft log 上。
+    1. leader 收到不少于指定数量的确认回执后，发送确认 `append` 的指令给 follower。
+    1. follower 收到确认 `append` 的指令后将区块信息记录到本地的 Raft log 上。
 6. Raft 节点将区块传递给对应的 Quorum 节点。Quorum 节点校验区块的合法性，如果合法则记录到本地链上。
 
+
 ## **Block Race**
+通常情况下，每一个被传至 Raft 的区块最终都会被添加到链上。但是也会有意外出现。比如因为一些网络的原因，某个 leader 无法与大部分的 follower 进行交互了。这时其他 follower 就会推选出新的 leader。在这期间，旧的 leader 还会产生新的区块。但是因为没有收到足量的 follower 回执，所以它产生的区块都不会最终写到链上。与之相对的，新的 leader 这边则会正常进行区块同步。一旦旧 leader 这边恢复通信，它会将自己产生的 `AppendEntries` 指令广播出去。由于其发出的指令已经过时了，所以大部分的 follower 不会给予这些指令正确的回执。
 
+具体流程如下：
+1. `Node1` 作为 leader 产生一个新的区块：`[0x002, parent: 0x001]`。这个区块的父块是编号为 0x001 的区块。`Node1` 通过 Raft 将这个区块进行共识。
+2. 0X002 区块共识成功后网络出现了问题，`Node1` 无法与大部分的 follower 进行通信。
+3. 网络问题并没有影响 `Node1` 的产块。一个新的区块被产出：`[0x003, parent: 0x002]`。为了共识这个新的区块，`Node1` 向 Raft 网络发送 `AppendEntries` 指令（指令中包含新区块的信息），并等待 follower 的确认回执。因为网络问题，`Node1` 一直没有收到足够数量的 follower 回执。
+4. 于此同时，那些无法与 `Node1` 通信的 follower 因为长时间没收到 leader 的心跳，所以推选出了新的 leader：`Node2`。
+5. `Node2` 产生区块`[0x004, parent: 0x002]` 后将含此区块信息的 `AppendEntries` 指令发送给 follower。follower 确认这个指令后返回确认回执。最终这个指令被执行并记录在 Raft log中。
+6. 0x004 区块共识完成后网络状态得到恢复。此时第三步中的来自 `Node1` 的 `AppendEntries` 指令终于被传递给大部分的 follower。但是此时 follower 的链上的最终块已经是第五步中的 0x004，所以区块 `[0x003, parent: 0x002]` 无法被执行，因为其 parent 是 0x002 不满足当前链的状态。这条不执行的动作也会被记录到 Raft log 中去。
+7. `Node2` 继续生成区块 `[0x005, parent: 0x004]`。
+8. 最后整个流程下来，follower 的 Raft log 内容大致会长这样：
+```
+得到区块[0x002, parent: 0x001, sender: Node1] - 执行     
+得到区块[0x004, parent: 0x002, sender: Node2] - 执行     
+得到区块[0x003, parent: 0x002, sender: Node1] - 不执行     
+得到区块[0x005, parent: 0x004, sender: Node2] - 执行   
+```
 
+需要注意的是，整个共识过程中，Raft 层面只负责记录自己节点的 Raft log。真正执行 log 内容的是 Quorum 节点。Quorum 节点根据其节点对应的 Raft log 来做具体的操作。
 
 
 ## **Speculative Minting**
-一个区块从被创建，到经过 Raft 同步，到最后记录到链上会经历一段时间（尽管非常短）。如果等上一个区块写入到链上以后下一个区块才能生成，那么就会使得 TX 的确认时间增长。为了解决这个问题，同时为了能更有效率的处理区块生成，Quorum 推出了 `speculative minting` 机制。在这种机制下，新区块可以在其父区块没有完全上链的情况下被创建。如果这个场景重复出现，那么就会出现一串未被上链的区块，这些区块都会有指向其父区块的索引，我们成这类区块串为 `speculative chain`。
+一个区块从被创建，到经过 Raft 同步，到最后记录到链上多多少少会经历一段时间（尽管非常短）。如果等上一个区块写入到链上以后下一个区块才能生成，那么就会使得 TX 的确认时间增长。为了解决这个问题，同时为了能更有效率的处理区块生成，Quorum 推出了 `speculative minting` 机制。在这种机制下，新区块可以在其父区块没有完全上链的情况下被创建。如果这个场景重复出现，那么就会出现一串未被上链的区块，这些区块都会有指向其父区块的索引，我们将这类区块串称为 `speculative chain`。
+
+在维护 speculative chain 的同时，系统还会维护一份被称作 `proposedTxes` 的数组。这份数组包含了所有 speculative chain 中的 TX。主要是为了记录已经被传输到 Raft 中但是还没被正式上链的交易。防止同一条交易被重复打包。
+
+## **Conclusion**
+与以太坊的共识机制相比较，Raft-based Consensus 除了效率上的不同外，最大的差异是前者保证的是最终一致性，而 Raft 保证的是强一致性。既每次产生的区块都要求全网保持共识。在这里我们只是粗粗的了解 Raft-based，还需要更多对源码的研究来拨开 Quorum 的面纱。
+
+# END
+
+
+
