@@ -1,4 +1,4 @@
-# **Raft-based Consensus**
+# **Quorum 的 Raft-based Consensus**
 在2017年11月30日，Quorum 推出了 2.0 的 release 版本。这一版最大的改动就是剔除了 QuorumChain的共识方式，只支持 Raft-based Consensus。相比较以太坊的POW，Raft-based 提供了更快更高效的区块生成方式。相比 QuorumChain，Raft-based 不会产生空的区块，而且在区块的生成上比前者更有效率。
 
 在这一章节，我们重点关注 Raft 是如何被运用到 Quorum 上的。想要了解 Raft 算法的技术细节，可以参考 [raft.github.io](https://raft.github.io/) 或者 [Raft 动态演示](http://thesecretlivesofdata.com/raft/)。
