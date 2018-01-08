@@ -1,14 +1,33 @@
 # **以太坊 Dapp 调研**
 随着加密货币市场的逐渐火热，区块链也从原来的小众玩耍发展为一个新的科技热点。那么截止2017年底，究竟有多少人参与了区块链相关的行业呢？为了一探究竟，我以Dapp为切入点，从 Github 中抓取了所有和以太坊Dapp相关的项目的数据，并做了简单的整理和分析。
 
+
+# **Dapp 现状**
+数据截止 2017年12月20日。
+
+先看看所有Dapp的创建数量分布，横坐标表示新项目的创建时间，纵坐标表示新项目的数量：
+
+![Dapp创建数量分布](https://github.com/heeeeeng/my_docs/blob/master/ethereum_dapp/img/line_createnum.png?raw=true)
+
+从上图中我们可以很明显的发现，在2017年之前每月新增的Dapp数量一直是小于10个的。但是从2017年开始至2017年底，新项目的数量一直在飞速的增长，直到年底才有所缓和。由此可见从2017年开始，越来越多的人参与到区块链行业当中。
+
+那么 Github 上创建的这些项目又有多少是当前还一直活跃的呢？下表展示了Dapp项目的活跃度分布，横坐标为项目的创建时间，纵坐标为项目的最后一次更新时间，方框中的数字表示项目的数量，数字越大则颜色越深：
+
+![Dapp项目活跃度分布](https://github.com/heeeeeng/my_docs/blob/master/ethereum_dapp/img/heat_active_projects.png?raw=true)
+
+图中最上面一行
+
+
+# **方案实现**
+
 ### **方案设计**
-- 使用 “以太坊” 和 “Dapp” 为关键词，在 Github 上搜索相关的项目。
+- 使用 “Ethereum” 和 “Dapp” 为关键词，在 Github 上搜索相关的项目。
 - 用 python 来抓取搜索到的数据。
 - 使用 MySQL 来存储获取的数据。
 - 用 Echarts 呈现统计后的图表。
 
+## **数据抓取**
 
-# **数据获取**
 本来打算所有数据都用爬虫来获取，但后来发现 Github 官方提供了调取数据的 API，Github 对程序员真是很友好哈。在这里，使用了python库 [github3](https://github.com/sigmavirus24/github3.py) 来调取 API:
 
 ```python
@@ -83,9 +102,12 @@ def reg_helper():
 
     return result_num
 ```
+这里的 `result_num` 就是我们最后想要的数据了。用同样的方法可以获得其他你想要的数据。
+
+> **注:** 事实上这里完全可以继续使用 Github 的 API 来获得这些数据，那样应该会更方便。具体方法可以查询一下 [github3](https://github.com/sigmavirus24/github3.py) 这个 python 库的可调用方法，或者查询 [Github 官方 API 列表](https://developer.github.com/v3/)。
 
 
+## **结果统计**
 
-# **结果统计**
-
+为了更方便做后续统计聚类工作，我们将数据存至 MySQL 中
 
