@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+
+<style>
+
+.operator {
+    top: 5;
+    width: 50%;
+}
+
+</style>
+
+<head>
+    <meta charset="utf-8">
+
+    <title>Charts Viewer</title>
+    
+</head>
+
+<body>
+    <div class="whole_div">
+        
+        <div class="operator">
+            
+            <fieldset >
+                <legend>每月创建的项目数量</legend>
+                <div id="line_createtime_num" style="width:100%;height:400px;"></div>
+            </fieldset>
+
+            <fieldset >
+                <legend>活跃度热力分布</legend>
+                <div id="heat_createtime_updatetime" style="width:100%;height:600px;"></div>
+            </fieldset>
+            
+            <fieldset >
+                <legend>全项目散点分布</legend>
+                <div id="scatter_createtime_commits" style="width:100%;height:600px;"></div>
+            </fieldset>
+            
+            <fieldset >
+                <legend>项目语言分布</legend>
+                <div id="pie_languages" style="width:600px;height:400px;"></div>
+            </fieldset>
+        
+            <fieldset >
+                <legend>项目其他语言分布</legend>
+                <div id="pie_languages_others" style="width:600px;height:400px;"></div>
+            </fieldset>
+
+            <fieldset >
+                <legend>Stars</legend>
+                <div id="pie_stars" style="width: 600px;height:400px;"></div>
+            </fieldset>
+
+
+        </div>
+
+       
+    </div>
+</body>
+
+<script type="text/javascript" src="echarts.min.js"></script>
+<script type="text/javascript" src="web.js"></script>
+</html>
+
