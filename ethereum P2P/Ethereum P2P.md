@@ -10,7 +10,7 @@ p.s. 主要针对以太坊源码的对应实现，相关的算法如kademlia DHT
 
 与节点建立连接的流程大致如下图：
 
-<!-- ![01](https://github.com/heeeeeng/my_docs/blob/master/ethereum%20P2P/img/01%20p2p%20main%20struct.png?raw=true) -->
+![01](https://github.com/heeeeeng/my_docs/blob/master/ethereum%20P2P/img/01%20p2p%20main%20struct.png?raw=true)
 
 上图中，第一和第二步每隔一段时间就会重复一次。目的是保持当前节点的table所存储的url的可用性。当节点需要寻找新的节点用于tcp数据传输时，就从一直在更新维护的table中取出一定数量的url进行连接即可。
 
@@ -18,7 +18,7 @@ p.s. 主要针对以太坊源码的对应实现，相关的算法如kademlia DHT
 
 前文提到过，以太坊会维护一个table结构用于存储发现的节点url，当需要连接新的节点时会从table中获取一定数量的url进行tcp连接。在这个过程中，table的更新和维护将会在独立的goroutine中进行。这部分涉及的代码主要在 `p2p/discvV5` 目录下的 `udp.go`, `net.go`, `table.go` 这三个文件中。下面我们看看udp这部分的主要逻辑结构：
 
-<!-- ![02](https://github.com/heeeeeng/my_docs/blob/master/ethereum%20P2P/img/02%20udp%20part%20struct.png?raw=true) -->
+![02](https://github.com/heeeeeng/my_docs/blob/master/ethereum%20P2P/img/02%20udp%20part%20struct.png?raw=true)
 
 ### **readloop()**
 
