@@ -14,6 +14,8 @@ p.s. 主要针对以太坊源码的对应实现，相关的算法如kademlia DHT
 
 上图中，第一和第二步每隔一段时间就会重复一次。目的是保持当前节点的table所存储的url的可用性。当节点需要寻找新的节点用于tcp数据传输时，就从一直在更新维护的table中取出一定数量的url进行连接即可。
 
+> 为了防止节点之间的 tcp 互联形成信息孤岛，每个以太坊节点间的连接都分为两种类型：bound_in 和 bound_out。bound_in 指本节点接收到别人发来的请求后建立的 tcp 连接，bound_out 指本节点主动发起的 tcp 连接。假设一个节点最多只能与6个节点互联，那么在默认的设置中，节点最多只能主动和 4 个节点连接，剩余的必须留着给其它节点接入用。对于 bound_in 连接的数量则不做限制。
+
 ## **UDP部分**
 
 前文提到过，以太坊会维护一个table结构用于存储发现的节点url，当需要连接新的节点时会从table中获取一定数量的url进行tcp连接。在这个过程中，table的更新和维护将会在独立的goroutine中进行。这部分涉及的代码主要在 `p2p/discvV5` 目录下的 `udp.go`, `net.go`, `table.go` 这三个文件中。下面我们看看udp这部分的主要逻辑结构：
@@ -22,7 +24,7 @@ p.s. 主要针对以太坊源码的对应实现，相关的算法如kademlia DHT
 
 ### **readloop()**
 
-`readloop()`方法在 udp.go 文件中，用来监听所有收到的udp消息。通过 `ReadFromUDP()` 接收收到的消息，然后在 `handlePacket()` 方法内将消息序列化后传递给后续的消息处理程序。
+`readloop()`方法在 [p2p/discvV5/udp.go](https://github.com/ethereum/go-ethereum/blob/master/p2p/discv5/udp.go#L371) 文件中，用来监听所有收到的udp消息。通过 `ReadFromUDP()` 接收收到的消息，然后在 `handlePacket()` 方法内将消息序列化后传递给后续的消息处理程序。
 
 ### **sendPacket()**
 
@@ -38,7 +40,7 @@ p.s. 主要针对以太坊源码的对应实现，相关的算法如kademlia DHT
 
 ### **loop()**
 
-`loop()` 方法在 net.go 文件中，是整个 p2p 部分的核心方法。它控制了节点发现机制的大部分逻辑内容，由一个大的 select 进行各种 case 的监控。主体代码大致如下：
+`loop()` 方法在 [p2p/discvV5/net.go](https://github.com/ethereum/go-ethereum/blob/master/p2p/discv5/net.go#L363) 文件中，是整个 p2p 部分的核心方法。它控制了节点发现机制的大部分逻辑内容，由一个大的 select 进行各种 case 的监控。主体代码大致如下：
 
 ```go
 func (net *Network) loop() {
@@ -144,9 +146,20 @@ handle() 方法在处理后会返回一个 nodeState，意思是我当前的 nod
 7. NodeB 收到 NodeA 的 pong 应答后调用 verifywait 的 handle() 方法，此方法会将 NodeA 的 state 设置为 known。在 state 转换后调用新 state 也就是 known state 的 enter() 方法。known 的 enter() 中会将 NodeA url 加入到 NodeB 的 table 中。
 8. Step5 中 NodeA 的定时器到点并向 NodeA 自己发送 timeout 消息。此消息会调用 remoteverifywait 的 handle() 然后将 NodeB 的状态设置为 known。和 Step7 中一样，更改状态为 known 后 NodeB 的 url 会加入到 NodeA 的 table 中。
 
+p.s. 以上步骤结合源码会更清晰
+
 ## **lookup节点发现**
 
+上文中，NodeA 收到了 NodeB 的 url 从而发起两者间的联系。那么 NodeA 是如何得到这个 url 的呢？答案是通过 `lookup()` 方法来发现这个 url。
 
+lookup() 方法源码在 [p2p/discvV5/net.go](https://github.com/ethereum/go-ethereum/blob/master/p2p/discv5/net.go#L238) 文件中。此方法在需要获取新的 url 或者需要刷新 table 时被调用。
 
-## **寻找closest节点**
+lookup() 需要输入一个 target 作为目标，然后寻找和 target 最近的 n 个节点。target 是由一个节点的 NodeID 经过哈希计算得来的。在以太坊中，每次生成新的target 都会虚构一个节点 url 然后 hash 计算得到 target。lookup() 方法的基本思路是先从本地 table 获取和 target 最近的一部分邻居节点，然后再获取这些邻居节点的 table 中和 target 最近的部分节点。最后从得到的节点中选距离 target 最近的 n 个节点 url 作为新的 table 内容。如果这些 url 中有部分是之前未接触的，则程序会走上文提到的新节点加入流程来建立关系。
 
+这里提到的距离最近不是指物理距离，而是数理上的最近。程序会计算节点 NodeID 经过 hash 计算后和 target 的差异大小来判断数理上的距离大小，具体可以参考 [closest() 方法](https://github.com/ethereum/go-ethereum/blob/master/p2p/discv5/table.go#L171)。
+
+## **Conclusion**
+
+以太坊的P2P大致就是上述的实现方式。总的来说就是通过 udp 发现可供使用的节点 url 并将这些 url 维护在本地的 table 中，通过 tcp 和其他节点进行连接并进行数据传输，当需要新的节点时从 table 中获取未接触过的 url 建立新的 tcp 连接。
+
+（完）
