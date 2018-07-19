@@ -14,7 +14,7 @@ p.s. 主要针对以太坊源码的对应实现，相关的算法如kademlia DHT
 
 上图中，第一和第二步每隔一段时间就会重复一次。目的是保持当前节点的table所存储的url的可用性。当节点需要寻找新的节点用于tcp数据传输时，就从一直在更新维护的table中取出一定数量的url进行连接即可。
 
-## **UDP部分**
+## **UDP部分主要概念**
 
 前文提到过，以太坊会维护一个table结构用于存储发现的节点url，当需要连接新的节点时会从table中获取一定数量的url进行tcp连接。在这个过程中，table的更新和维护将会在独立的goroutine中进行。这部分涉及的代码主要在 `p2p/discvV5` 目录下的 `udp.go`, `net.go`, `table.go` 这三个文件中。下面我们看看udp这部分的主要逻辑结构：
 
@@ -69,8 +69,8 @@ func (net *Network) loop() {
 ```go
 type nodeState struct {
     name     string
-    handle   func(*Network, *Node, nodeEvent, *ingressPacket) (next *nodeState, err error)
-    enter    func(*Network, *Node)
+    handle   func( ... ) ( ... )
+    enter    func( ... )
     canQuery bool
 }
 
@@ -95,9 +95,36 @@ func init() {
 }
 ```
 
-<!-- TODO -->
+nodeState主要是为了记录新地址的可用状态。当节点接触新的 url 时，此 url 会首先被定义为 unknown 状态，然后进入后续 ping pong 验证阶段。验证流程过完以后 就会被定义为 known 状态然后保存到 table 中。
 
-## **新节点加入流程**
+### **enter() 和 handle()**
+
+nodeState 结构下定义了两个方法 `enter()` 和 `handle()`。
+
+- enter 是 nodeState 的入口方法，当一个 url 从 nodeState1 转到 nodeState2 时，它就会调用 nodeState2 的 enter() 方法。
+- handle 是 nodeState 的处理方法，当节点收到某个 url 的 udp 消息时，会调用此 url 当前 nodeState 的 handle() 方法。一般 handle() 方法会针对不同的 udp 消息类型进行不同的逻辑处理：
+
+```go
+// verifywait 的 handle 方法
+func (net *Network, n *Node, ev nodeEvent, pkt *ingressPacket) (*nodeState, error) {
+    switch ev {
+        case pingPacket:
+            net.handlePing(n, pkt)
+            return verifywait, nil
+        case pongPacket:
+            err := net.handleKnownPong(n, pkt)
+            return known, err
+        case pongTimeout:
+            return unknown, nil
+        default:
+            return verifywait, errInvalidEvent
+    }
+}
+```
+
+handle() 方法在处理后会返回一个 nodeState，意思是我当前的 nodeState 在处理了这个 udp 消息后下一步将要转换的新的 state。比如在上面的代码中，verifywait 状态下的 url 在收到 pong 类型的 udp 消息后就会转换成 known 状态。
+
+## **具体的新节点加入流程**
 
 
 
