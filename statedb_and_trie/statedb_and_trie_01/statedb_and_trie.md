@@ -11,7 +11,7 @@ MPT 是结合了 Merkle Tree 和 Patricia Tree 的特点后创建的树形数据
 - 支持 Merkle Proof，用于节点的快速校验。
 - 能快速的查询 key 所对应的 value 数据。
 
-![mpt](https://github.com/heeeeeng/my_docs/blob/master/statedb_and_trie/mpt.png?raw=true)
+![mpt](https://github.com/heeeeeng/my_docs/blob/master/statedb_and_trie/statedb_and_trie_01/01%20mpt.png?raw=true)
 
 在以太坊中，MPT被定义为四种不同类型的节点：`fullNode, shortNode, valueNode, hashNode`：
 ```go
@@ -51,7 +51,7 @@ type (
 
 他们在 MPT 中就会以如下的方式存储：
 
-![mpt example](https://github.com/heeeeeng/my_docs/blob/master/statedb_and_trie/trie%20example.jpg?raw=true)
+![mpt example](https://github.com/heeeeeng/my_docs/blob/master/statedb_and_trie/statedb_and_trie_01/02%20trie%20example.jpg?raw=true)
 
 可以看到，因为存在前缀分歧，所以 Root 节点是 fullNode。后续节点分成两派，key 以 `c` 为前缀和以 `d` 为前缀。我们关注以 `d` 为前缀的三个键值对，它们的 key 分别是 "dog"、"doge" 和 "doggie"。除了开头的 `d` 以外，它们还有个共同的前缀 `og`。因此 Root 节点往下引申一个 ShortNode 2。ShortNode 2 的 key 就是 "og", 又因为除了 og 其它部分都存在分歧，所以 ShortNode 2 的 Val 字段存储的是一个 FullNode（参考上面对 shortNode 的解释）。
 
@@ -135,7 +135,7 @@ data 字段保存账户的余额，Nonce等信息。同时，在后续落盘 MPT
 
 ---
 
-![statedb and trie structure](https://github.com/heeeeeng/my_docs/blob/master/statedb_and_trie/StateDB%20and%20Trie%20structure.jpg?raw=true)
+![statedb and trie structure](https://github.com/heeeeeng/my_docs/blob/master/statedb_and_trie/statedb_and_trie_01/03%20StateDB%20and%20Trie%20structure.jpg?raw=true)
 
 由于篇幅有限，上篇就先只介绍 MPT 和 StateDB 本身。在下篇，我们将重点结合上图讲解 StateDB 和 MPT 两者的工作结构，以及不同类型 Transaction 执行过程中 StateDB 和 MPT 的逻辑流程。
 
