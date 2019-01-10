@@ -1,4 +1,4 @@
-# **以太坊的StateDB和Trie （上）**
+# **StateDB和Trie （上）**
 
 在以太坊中，所有和账户相关的状态信息都是通过 StateDB 来存储和获取的。StateDB 作为表层和其他逻辑模块交互，在 StateDB 之后使用 Merkle Patricia Trie (MPT) 结构来构建编码后的 state 关系，用于快速索引以及回滚等操作。MPT 中的所有节点最后都会以 `key - value` 的形式存入磁盘数据库。
 
@@ -84,13 +84,59 @@ type StateDB struct {
     stateObjects      map[common.Address]*stateObject
     stateObjectsDirty map[common.Address]struct{}
 
-    // 其余字段暂时省去
+    // 其余字段省去
     ...
 }
 ```
 
-- `db` - 用于连接下层 trie 数据库的字段。本身不存储数据，为了调取 TrieDB 存在。
-- `trie` - 当前所有账户信息构建的 trie 结构。
-- `stateObjects` - 
+- db - 用于连接下层 trie 数据库的字段。本身不存储数据，为了调取 TrieDB 存在。
+- trie - 当前所有账户信息构建的 MPT 结构。
+- stateObjects - 存储缓存的账户 state 信息。
+- stateObjectsDirty - 标记被更改的 state 对象，用于后续的 commit 操作。
 
+StateDB 通过操作和查询 `stateObjects` 中缓存的 state 对象来完成业务逻辑的执行。如果 stateObjects 中找不到需要操作的对象，则通过 `createObject(addr common.Address)` 方法从 `trie` 字段的 MPT 中读取对应的 state 对象并放入缓存中。
 
+### **stateObject**
+
+stateObject 是以太坊中用于存储每个账户信息的数据结构：
+
+```go
+type stateObject struct {
+    address  common.Address
+    addrHash common.Hash // hash of ethereum address of the account
+    data     Account
+    db       *StateDB
+
+    // Write caches.
+    trie Trie // storage trie, which becomes non-nil on first access
+    code Code // contract bytecode, which gets set when code is loaded
+
+    originStorage Storage // Storage cache of original entries to dedup rewrites
+    dirtyStorage  Storage // Storage entries that need to be flushed to disk
+
+    // Cache flags.
+    // When an object is marked suicided it will be delete from the trie
+    // during the "update" phase of the state transition.
+    dirtyCode bool // true if the code was updated
+    suicided  bool
+    deleted   bool
+}
+
+type Account struct {
+    Nonce    uint64
+    Balance  *big.Int
+    Root     common.Hash // merkle root of the storage trie
+    CodeHash []byte
+}
+```
+data 字段保存账户的余额，Nonce等信息。同时，在后续落盘 MPT 的过程中，主要存储的内容就是经过编码序列化后的 data 字段。
+
+这里值得特别提一点的是 stateObject 的 trie 字段和 data 中的 Root 字段。和 StateDB 中的 trie 不同，此处的 trie 是用来存储此 state 地址下的合约数据的。每个地址账户都会有属于自己的一棵 trie 用来做合约存储。data 中的 Root 则是这个 trie 的根节点的哈希。在将 state 数据存入 StateDB 的 trie 的过程中会带上这个 Root，这么做的好处主要是能将合约数据和世界状态数据绑定在一起，增加关联性和安全性，同时，在后续的回滚操作中能通过世界状态 trie 的 Root 还原出包括合约数据的所有状态。
+
+---
+
+![statedb and trie structure](https://github.com/heeeeeng/my_docs/blob/master/statedb_and_trie/StateDB%20and%20Trie%20structure.jpg?raw=true)
+
+由于篇幅有限，上篇就先只介绍 MPT 和 StateDB 本身。在下篇，我们将重点结合上图讲解 StateDB 和 MPT 两者的工作结构，以及不同类型 Transaction 执行过程中 StateDB 和 MPT 的逻辑流程。
+
+（完）
