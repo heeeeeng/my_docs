@@ -11,14 +11,14 @@ MPT 是结合了 Merkle Tree 和 Patricia Tree 的特点后创建的树形数据
 - 支持 Merkle Proof，用于节点的快速校验。
 - 能快速的查询 key 所对应的 value 数据。
 
-<!-- ![01](https://github.com/heeeeeng/my_docs/blob/master/statedb_and_trie/mpt.png?raw=true) -->
+<!-- ![mpt](https://github.com/heeeeeng/my_docs/blob/master/statedb_and_trie/mpt.png?raw=true) -->
 
 在以太坊中，MPT被定义为四种不同类型的节点：`fullNode, shortNode, valueNode, hashNode`：
 ```go
 type (
     fullNode struct {
         Children [17]node // Actual trie node data to encode/decode (needs custom encoder)
-        lags    nodeFlag
+        flags    nodeFlag
     }
     shortNode struct {
         Key   []byte
@@ -33,11 +33,23 @@ type (
 
 `hashNode` 存储一个数据库中其他节点的哈希用作索引。
 
-`shortNode` 是 MPT 的枝干节点之一。Key 字段存储当前 shortNode 之后所有 node 共同的一段前缀 key。比如有两个数据它们的 Key 分别是
+`shortNode` 是 MPT 的枝干节点之一。"Key" 字段存储当前 shortNode 之后所有 node 共同的一段前缀 key。"Val" 字段存储一个后续的节点。如果从根节点到当前节点所组成的 key 前缀已经键值对结构中的"键"完全吻合，且没有其它符合此前缀的键值对存在，则后续节点为一个 valueNode。如果满足此前缀 key 的键值对组合多于一个，则后续存储一个 fullNode。
 
-一棵 MPT 树由 fullNode 和 shortNode 来构成主体枝干。
+`fullNode` 是 MPT 的枝干节点之一。和 shortNode 不同的是，fullNode 没有 Key 字段，只有一个 node 数组 "Children"。fullNode 主要作用是存储有共同前缀 key 但是在后续key值产生分歧的所有键值对。node 数组的长度为 17，因为涉及具体的编码方式，所以先不在这里讲为什么这么设置。可以简单将 17 理解为 16 + 1，16 进制加上本身的 value 值。
 
-先来看 shortNode。`Key` 字段表示
+### **具体例子**
+光看字面比较抽象，我们看看具体的例子。假设现在我们有 6 个键值对：
+```
+cat         - value1
+cattle      - value2
+category    - value3
+dog         - value4
+doge        - value5
+doggie      - value6
+```
+他们在 MPT 中就会以如下的方式存储：
+![mpt example]()
+
 
 
 ## **StateDB**
