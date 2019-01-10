@@ -39,14 +39,14 @@ type (
 
 ### **具体例子**
 光看字面比较抽象，我们看看具体的例子。假设现在我们有 6 个键值对：
-key | value
---- | --- 
-cat | value1
-cattle | value2
-category | value3
-dog | value4
-doge | value5
-doggie | value6
+| key | value
+| --- | --- 
+| cat | value1
+| cattle | value2
+| category | value3
+| dog | value4
+| doge | value5
+| doggie | value6
 
 他们在 MPT 中就会以如下的方式存储：
 
